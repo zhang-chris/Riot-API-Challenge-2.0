@@ -3,8 +3,114 @@ __author__ = 'Jin'
 from flask import Flask, jsonify
 import requests
 
+
 app = Flask(__name__)
-app.config["DEBUG"] = True
+app.config["DEBUG"] = False
+
+
+
+
+
+def getMatchIDs(region):
+	
+	directory = "AP_ITEM_DATASET/5.11/NORMAL_5X5/" + region + ".json"
+	infile = open(directory, "r")
+	matchList = infile.read()
+	matchList = matchList.lstrip("[\n").rstrip("]\n").replace("\n", "").split(", ")
+
+
+	
+	infile.close()
+	return matchList
+
+def writeStats(matchList, region):
+
+	directory = "MATCH_NA_DATA/" + region + "data.json"
+	outfile = open(directory, "w")
+	for i in range(0, 1):
+		matchID = matchList[i]
+		url = "https://na.api.pvp.net/api/lol/na/v2.2/match/" + matchID + "?api_key=0f9be0c6-c095-4010-8036-e9ce291f8117"
+		response_dict = requests.get(url).json()
+		for j in range(0, 10):
+			
+			matchData = []
+			matchData.append(matchID)
+			participants = response_dict['participants'][j]
+
+			stats = participants['stats']
+
+			championID = participants['championId']
+			print (championID)
+			url2 = "https://global.api.pvp.net/api/lol/static-data/na/v1.2/champion/" + str(championID) + "?champData=tags&api_key=0f9be0c6-c095-4010-8036-e9ce291f8117"
+			response_dict2 = requests.get(url2).json()
+			print (response_dict2)
+			champion = response_dict2['tags']
+
+
+			matchData.append(participants['timeline']['role'])
+			matchData.append(participants['timeline']['lane'])
+			
+			#3-11
+			matchData.append(stats['totalDamageDealt'])
+			matchData.append(stats['totalDamageTaken'])	
+			matchData.append(stats['magicDamageDealt'])			
+			matchData.append(stats['magicDamageTaken'])
+			matchData.append(stats['physicalDamageDealt'])
+			matchData.append(stats['physicalDamageTaken'])
+			matchData.append(stats['magicDamageDealtToChampions'])
+			matchData.append(stats['physicalDamageDealtToChampions'])
+			matchData.append(stats['totalDamageDealtToChampions'])
+
+			#12-17
+			matchData.append(stats['item1'])
+			matchData.append(stats['item2'])
+			matchData.append(stats['item3'])
+			matchData.append(stats['item4'])
+			matchData.append(stats['item5'])
+			matchData.append(stats['item6'])
+
+			matchData.append(response_dict2['name'])
+			for i in champion:
+				matchData.append(i)
+			if len(champion) == 1:
+				matchData.append("None")
+			
+			matchDataString = str(matchData) + '\n'
+			
+			outfile.write(matchDataString)
+
+
+
+	outfile.close()
+
+def statsCounter():
+
+	infile = open("MATCH_NA_DATA/NAdata.json", 'r')
+	outfile = open("ITEM_DATA/NA.json", 'w')
+	
+	itemDict = {}
+
+	for line in infile:
+		lineList = line.lstrip("[").rstrip("]\n").split(", ")
+		print (lineList)
+		for i in range(12, 18):
+			if lineList[i] in itemDict:
+				itemDict[lineList[i]] += 1
+			else:
+				itemDict[lineList[i]] = 1
+		for i in range(3, 12):
+			if i in itemDict:
+				itemDict[i] += int(lineList[i])
+			else:
+				itemDict[i] = int(lineList[i])
+	outfile.write(str(itemDict))
+	infile.close()
+	outfile.close()
+
+
+
+
+
 
 
 @app.route("/")
@@ -46,6 +152,10 @@ def getID(name, query):
 	# return response_dict[query]["id"]
 
 
+
+testmatchid = getMatchIDs("NA")
+writeStats(testmatchid, "NA")
+statsCounter()
 
 
 if __name__ == "__main__":
