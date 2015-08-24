@@ -69,7 +69,7 @@ def writeStats(matchList, region):
 			matchData.append(str(stats['item6']))
 
 			#18-20
-			matchData.append(response_dict2['name'])
+			matchData.append(response_dict2['key'])
 			for i in champion:
 				matchData.append(i)
 			if len(champion) == 1:
@@ -96,10 +96,22 @@ def statsCounter(filtertype, tag, region):
 
 
 	for line in infile:
-
-		
 		print (line)
-		lineList = line.lstrip("['").rstrip("'']\n").split("', '")
+		lineList = line.lstrip("['").rstrip("']\n").split("', '")
+		# lineList = line.lstrip("['").rstrip("']\n").split(", ")
+
+		# lineList = str(lineList)
+		# lineList = lineList.lstrip('[').rstrip(']')
+		# for char in "'":
+		# 	lineList.replace(char, "")
+		# lineList = lineList.replace("'", "")
+		# lineList = lineList.lstrip('"').rstrip('"')
+
+
+		# print (lineList)
+		# lineList = lineList.split('", "')
+
+		print (lineList)
 		if filtertype == 'champion':
 			if lineList[18] == tag:
 				for i in range(12, 18):
@@ -113,8 +125,9 @@ def statsCounter(filtertype, tag, region):
 					else:
 						itemDict[i] = int(lineList[i])
 		if filtertype == 'role':
-			print (lineList)
-			print (len(lineList))
+
+
+
 			if (lineList[19] == tag) or (lineList[20] == tag):
 				
 				for i in range(12, 18):
@@ -138,20 +151,34 @@ def statsCounter(filtertype, tag, region):
 
 def getChampionList():
 
-
+	infile = open("CHAMP_DATA/Champion_List.txt", 'r')
 	championList = []
-	url = "https://global.api.pvp.net/api/lol/static-data/na/v1.2/champion?api_key=0f9be0c6-c095-4010-8036-e9ce291f8117"
-	response_dict = requests.get(url).json()
-	champions = response_dict['data']
-	for key in champions:
-		championList.append(champions[key]['name'])
-	return (championList)
+	for line in infile:
+		championList = line.lstrip("['").rstrip("']").split("', '")
+	
+	infile.close()
+	return (championList)	
 
+     
 
 def getRoleList():
 
 	roleList = ['Assassin', 'Fighter', 'Mage', 'Marksman', 'Support', 'Tank']
 	return roleList
+
+def getItemList():
+
+	itemDict = {}
+	url = 'https://global.api.pvp.net/api/lol/static-data/na/v1.2/item?api_key=0f9be0c6-c095-4010-8036-e9ce291f8117'
+	response_dict = requests.get(url).json()
+	itemIDs = response_dict['data']
+
+	for itemID in itemIDs:
+		itemDict[itemID] = itemIDs[itemID]['name']
+
+	return (itemDict)
+
+def getAverage():
 
 
 @app.route("/")
@@ -194,8 +221,8 @@ def getID(name, query):
 
 
 
-championList = getChampionList()
-roleList = getRoleList()
+# championList = getChampionList()
+# roleList = getRoleList()
 
 # testmatchid = getMatchIDs("NA")
 # writeStats(testmatchid, "NA")
@@ -203,8 +230,10 @@ roleList = getRoleList()
 # for champion in championList:
 	# statsCounter('champion', champion, 'NA')
 
-for role in roleList:
-		statsCounter('role', role, 'NA')
+# for role in roleList:
+	# statsCounter('role', role, 'NA')	
+
+getItemList()
 
 
 if __name__ == "__main__":
