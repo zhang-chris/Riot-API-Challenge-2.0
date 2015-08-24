@@ -27,8 +27,9 @@ def writeStats(matchList, region):
 
 	directory = "MATCH_NA_DATA/" + region + "data.json"
 	outfile = open(directory, "w")
-	for i in range(0, 1):
+	for i in range(0, 10):
 		matchID = matchList[i]
+		print (i)
 		url = "https://na.api.pvp.net/api/lol/na/v2.2/match/" + matchID + "?api_key=0f9be0c6-c095-4010-8036-e9ce291f8117"
 		response_dict = requests.get(url).json()
 		for j in range(0, 10):
@@ -40,10 +41,8 @@ def writeStats(matchList, region):
 			stats = participants['stats']
 
 			championID = participants['championId']
-			print (championID)
 			url2 = "https://global.api.pvp.net/api/lol/static-data/na/v1.2/champion/" + str(championID) + "?champData=tags&api_key=0f9be0c6-c095-4010-8036-e9ce291f8117"
 			response_dict2 = requests.get(url2).json()
-			print (response_dict2)
 			champion = response_dict2['tags']
 
 
@@ -51,30 +50,30 @@ def writeStats(matchList, region):
 			matchData.append(participants['timeline']['lane'])
 			
 			#3-11
-			matchData.append(stats['totalDamageDealt'])
-			matchData.append(stats['totalDamageTaken'])	
-			matchData.append(stats['magicDamageDealt'])			
-			matchData.append(stats['magicDamageTaken'])
-			matchData.append(stats['physicalDamageDealt'])
-			matchData.append(stats['physicalDamageTaken'])
-			matchData.append(stats['magicDamageDealtToChampions'])
-			matchData.append(stats['physicalDamageDealtToChampions'])
-			matchData.append(stats['totalDamageDealtToChampions'])
+			matchData.append(str(stats['totalDamageDealt']))
+			matchData.append(str(stats['totalDamageTaken']))	
+			matchData.append(str(stats['magicDamageDealt']))
+			matchData.append(str(stats['magicDamageTaken']))
+			matchData.append(str(stats['physicalDamageDealt']))
+			matchData.append(str(stats['physicalDamageTaken']))
+			matchData.append(str(stats['magicDamageDealtToChampions']))
+			matchData.append(str(stats['physicalDamageDealtToChampions']))
+			matchData.append(str(stats['totalDamageDealtToChampions']))
 
 			#12-17
-			matchData.append(stats['item1'])
-			matchData.append(stats['item2'])
-			matchData.append(stats['item3'])
-			matchData.append(stats['item4'])
-			matchData.append(stats['item5'])
-			matchData.append(stats['item6'])
+			matchData.append(str(stats['item1']))
+			matchData.append(str(stats['item2']))
+			matchData.append(str(stats['item3']))
+			matchData.append(str(stats['item4']))
+			matchData.append(str(stats['item5']))
+			matchData.append(str(stats['item6']))
 
+			#18-20
 			matchData.append(response_dict2['name'])
 			for i in champion:
 				matchData.append(i)
 			if len(champion) == 1:
 				matchData.append("None")
-			
 			matchDataString = str(matchData) + '\n'
 			
 			outfile.write(matchDataString)
@@ -83,34 +82,76 @@ def writeStats(matchList, region):
 
 	outfile.close()
 
-def statsCounter():
+
+def statsCounter(filtertype, tag, region):
+
+
 
 	infile = open("MATCH_NA_DATA/NAdata.json", 'r')
-	outfile = open("ITEM_DATA/NA.json", 'w')
+
+	fileName = "ITEM_DATA/NA_" + filtertype + "_" + tag + ".json"
+	outfile = open(fileName, 'w')
 	
 	itemDict = {}
 
+
 	for line in infile:
-		lineList = line.lstrip("[").rstrip("]\n").split(", ")
-		print (lineList)
-		for i in range(12, 18):
-			if lineList[i] in itemDict:
-				itemDict[lineList[i]] += 1
-			else:
-				itemDict[lineList[i]] = 1
-		for i in range(3, 12):
-			if i in itemDict:
-				itemDict[i] += int(lineList[i])
-			else:
-				itemDict[i] = int(lineList[i])
+
+		
+		print (line)
+		lineList = line.lstrip("['").rstrip("'']\n").split("', '")
+		if filtertype == 'champion':
+			if lineList[18] == tag:
+				for i in range(12, 18):
+					if lineList[i] in itemDict:
+						itemDict[lineList[i]] += 1
+					else:
+						itemDict[lineList[i]] = 1
+				for i in range(3, 12):
+					if i in itemDict:
+						itemDict[i] += int(lineList[i])
+					else:
+						itemDict[i] = int(lineList[i])
+		if filtertype == 'role':
+			print (lineList)
+			print (len(lineList))
+			if (lineList[19] == tag) or (lineList[20] == tag):
+				
+				for i in range(12, 18):
+					if lineList[i] in itemDict:
+						itemDict[lineList[i]] += 1
+					else:
+						itemDict[lineList[i]] = 1
+				for i in range(3, 12):
+					if i in itemDict:
+						itemDict[i] += int(lineList[i])
+					else:
+						itemDict[i] = int(lineList[i])
+
+
 	outfile.write(str(itemDict))
+	
 	infile.close()
 	outfile.close()
 
 
 
+def getChampionList():
 
 
+	championList = []
+	url = "https://global.api.pvp.net/api/lol/static-data/na/v1.2/champion?api_key=0f9be0c6-c095-4010-8036-e9ce291f8117"
+	response_dict = requests.get(url).json()
+	champions = response_dict['data']
+	for key in champions:
+		championList.append(champions[key]['name'])
+	return (championList)
+
+
+def getRoleList():
+
+	roleList = ['Assassin', 'Fighter', 'Mage', 'Marksman', 'Support', 'Tank']
+	return roleList
 
 
 @app.route("/")
@@ -153,9 +194,17 @@ def getID(name, query):
 
 
 
-testmatchid = getMatchIDs("NA")
-writeStats(testmatchid, "NA")
-statsCounter()
+championList = getChampionList()
+roleList = getRoleList()
+
+# testmatchid = getMatchIDs("NA")
+# writeStats(testmatchid, "NA")
+
+# for champion in championList:
+	# statsCounter('champion', champion, 'NA')
+
+for role in roleList:
+		statsCounter('role', role, 'NA')
 
 
 if __name__ == "__main__":
